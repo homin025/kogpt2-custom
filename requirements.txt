@@ -1,0 +1,11 @@
+gluonnlp~=0.10.0
+mxnet~=1.7.0.post1
+onnxruntime == 1.5.2
+sentencepiece >= 0.1.85
+torch~=1.6.0
+transformers~=4.1.1
+tensorboardX~=2.1
+requests~=2.18.4
+pandas~=1.1.5
+numpy~=1.16.6
+kogpt2~=0.1.1

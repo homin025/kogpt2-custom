@@ -11,11 +11,21 @@ class Dataset:
         self.data = []
 
         """ START: Customization for dataset is necessary """
-        file = open(self.path, 'r', encoding='utf-8')
-        # df = pd.read_csv(self.path)
+        # file = open(self.path, 'r', encoding='utf-8')
+        df = pd.read_csv(self.path, encoding='CP949')
         # df = pd.read_excel(self.path)
 
-        lines = file.readlines()
+        lines = []
+        for row in range(0, len(df['ISBN13'])):
+            line = df['SENTENCE'][row]
+
+            if type(line) is not str:
+                continue
+                
+            line = line.replace('@##@', ' ')
+            lines.append(line)
+
+        # lines = file.readlines()
         for line in lines:
             tokenized_line = tokenizer(line)
 

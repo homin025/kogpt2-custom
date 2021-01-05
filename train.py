@@ -1,8 +1,7 @@
 import os
-import sys
 import random
-import requests
 import argparse
+import traceback
 import numpy as np
 
 import torch
@@ -11,9 +10,9 @@ from torch.utils.data import DataLoader
 from gluonnlp.data import SentencepieceTokenizer
 from transformers import GPT2Config, GPT2LMHeadModel
 from kogpt2.utils import download
-from tensorboardX import SummaryWriter
 
 import data
+
 
 pytorch_kogpt2 = {
     'url':
@@ -41,21 +40,20 @@ kogpt2_config = {
     "activation_function": "gelu"
 }
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--epoch', type=int, default=-1)
     parser.add_argument('--batch_size', type=int, default=-1)
+    parser.add_argument('--save', type=str, default='./checkpoint/')
+    parser.add_argument('--load', type=str, default='./checkpoint/kogpt2_subject_epoch.ckpt')
     parser.add_argument('--dataset', type=str, default='./dataset/')
-    parser.add_argument('--save_model', type=str, default='./checkpoint/')
-    parser.add_argument('--load_model', type=str, default='./checkpoint/kogpt2_subject_epoch.ckpt')
     args = parser.parse_args()
 
     if args.epoch == -1:
         args.epoch = 10
     if args.batch_size == -1:
         args.batch_size = 1
-
-    summary = SummaryWriter()
 
     seed = random.randint(0, 2147483647)
     np.random.seed(seed)
@@ -66,15 +64,15 @@ if __name__ == '__main__':
     cachedir = '~/kogpt2/'
 
     subject = 'subject'
-    if args.load_model != './checkpoint/kogpt2_subject_epoch.ckpt':
-        checkpoint = torch.load(args.load_model, map_location=device)
-        subject = args.load_model.split('_')[1]
-        args.load_model = None
+    if args.load != './checkpoint/kogpt2_subject_epoch.ckpt':
+        checkpoint = torch.load(args.load, map_location=device)
+        subject = args.load.split('_')[1]
+        args.load = None
 
     model = GPT2LMHeadModel(config=GPT2Config.from_dict(kogpt2_config))
 
     # download model
-    if not args.load_model:
+    if not args.load:
         model.load_state_dict(checkpoint['model_state_dict'])
     else:
         model_info = pytorch_kogpt2
@@ -112,35 +110,38 @@ if __name__ == '__main__':
 
     tokenizer = SentencepieceTokenizer(tokenizer)
 
+    dataset = None
+
     try:
         dataset = data.Dataset(args.dataset, vocab, tokenizer)
         print("loading dataset succeeds")
     except Exception as e:
         print("loading dataset fails")
+        traceback.print_exc()
         exit(0)
-    finally:
-        dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True)
+
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
     loss = 0
     epoch = 0
     learning_rate = 1e-5
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
     # criterion = torch.nn.CrossEntropyLoss()
 
-    if not args.load_model:
+    if not args.load:
         epoch = checkpoint['epoch']
         learning_rate = checkpoint['learning_rate']
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        # scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
     print("KoGPT2 Training Starts")
     model.train()
 
-    iter = 0
-    average_loss = (0.0, 0.0)
-
     for epoch in range(epoch, args.epoch):
+        iter = 0
+        average_loss = (0.0, 0.0)
+
         for data in dataloader:
             optimizer.zero_grad()
 
@@ -153,7 +154,6 @@ if __name__ == '__main__':
             loss = loss.to(device)
             loss.backward()
             optimizer.step()
-            scheduler.step(loss)
 
             average_loss = (average_loss[0] * 0.99 + loss, average_loss[1] * 0.99 + 1)
 
@@ -163,18 +163,22 @@ if __name__ == '__main__':
                                                                                           1]))
             iter += 1
 
+        # scheduler.step(average_loss[0] / average_loss[1])
+
         if epoch % 5 == 0:
             try:
-                if not os.path.exists(args.save_path):
-                    os.mkdir(args.save_path)
+                if not os.path.exists(args.save):
+                    os.mkdir(args.save)
 
                 torch.save({
                     'epoch': epoch,
                     'learning_rate': learning_rate,
                     'model_state_dict': model.state_dict(),
-                    'optimzer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict()
-                }, args.save_path + 'kogpt2_' + subject + '_' + str(epoch) + '.ckpt')
+                    'optimzer_state_dict': optimizer.state_dict()
+                    # 'scheduler_state_dict': scheduler.state_dict()
+                }, args.save + 'kogpt2_' + subject + '_' + str(epoch) + '.ckpt')
+                print("saving model succeeds")
             except Exception as e:
+                traceback.print_exc()
                 print("saving model fails")
                 exit(0)

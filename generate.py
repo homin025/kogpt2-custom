@@ -42,7 +42,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--load', type=str, default='./checkpoint/kogpt2_subject_epoch.ckpt')
     parser.add_argument('--length', type=int, default=250)
-    parser.add_argument('--nsamples', type=int, default=1)
     parser.add_argument('--temperature', type=float, default=0.7)
     parser.add_argument('--top_k', type=int, default=40)
     parser.add_argument('--top_p', type=float, default=0.9)

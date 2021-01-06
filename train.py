@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=-1)
     parser.add_argument('--save', type=str, default='./checkpoint/')
     parser.add_argument('--load', type=str, default='./checkpoint/kogpt2_subject_epoch.ckpt')
-    parser.add_argument('--dataset', type=str, default='./dataset/')
+    parser.add_argument('--dataset', type=str, default='./dataset/', required=True)
     args = parser.parse_args()
 
     if args.epoch == -1:
@@ -149,7 +149,10 @@ if __name__ == '__main__':
             data = data.transpose(1, 0)
             data = data.to(device)
 
-            outputs = model(data, labels=data)
+            """ START: Customization for dataset is necessary """
+            outputs = model(data)
+            """ END: Customization for dataset is necessary """
+
             loss, logits = outputs[:2]
             loss = loss.to(device)
             loss.backward()

@@ -1,17 +1,14 @@
-import os
 import random
 import argparse
-import traceback
 import numpy as np
 
 import torch
 import gluonnlp
-from torch.utils.data import DataLoader
 from gluonnlp.data import SentencepieceTokenizer
 from transformers import GPT2Config, GPT2LMHeadModel
 from kogpt2.utils import download
 
-import data
+import samples
 
 
 pytorch_kogpt2 = {
@@ -43,17 +40,12 @@ kogpt2_config = {
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epoch', type=int, default=-1)
-    parser.add_argument('--batch_size', type=int, default=-1)
-    parser.add_argument('--save', type=str, default='./checkpoint/')
     parser.add_argument('--load', type=str, default='./checkpoint/kogpt2_subject_epoch.ckpt')
-    parser.add_argument('--dataset', type=str, default='./dataset/', required=True)
+    parser.add_argument('--length', type=int, default=250)
+    parser.add_argument('--temperature', type=float, default=0.7)
+    parser.add_argument('--top_k', type=int, default=40)
+    parser.add_argument('--top_p', type=float, default=0.9)
     args = parser.parse_args()
-
-    if args.epoch == -1:
-        args.epoch = 10
-    if args.batch_size == -1:
-        args.batch_size = 1
 
     seed = random.randint(0, 2147483647)
     np.random.seed(seed)
@@ -110,78 +102,10 @@ if __name__ == '__main__':
 
     tokenizer = SentencepieceTokenizer(tokenizer)
 
-    dataset = None
+    while True:
+        text = input('text: ')
 
-    try:
-        dataset = data.Dataset(args.dataset, vocab, tokenizer)
-        print("loading dataset succeeds")
-    except Exception as e:
-        print("loading dataset fails")
-        traceback.print_exc()
-        exit(0)
+        sentence = samples.sample_sequence(model, vocab, tokenizer, device, text, args.length, args.temperature, args.top_p, args.top_k)
 
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True)
-
-    loss = 0
-    epoch = 0
-    learning_rate = 1e-5
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
-    # criterion = torch.nn.CrossEntropyLoss()
-
-    if not args.load:
-        epoch = checkpoint['epoch']
-        learning_rate = checkpoint['learning_rate']
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        # scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-
-    print("KoGPT2 Training Starts")
-    model.train()
-
-    for epoch in range(epoch, args.epoch):
-        iter = 0
-        average_loss = (0.0, 0.0)
-
-        for data in dataloader:
-            optimizer.zero_grad()
-
-            data = torch.stack(data)
-            data = data.transpose(1, 0)
-            data = data.to(device)
-
-            """ START: Customization for dataset is necessary """
-            outputs = model(data)
-            """ END: Customization for dataset is necessary """
-
-            loss, logits = outputs[:2]
-            loss = loss.to(device)
-            loss.backward()
-            optimizer.step()
-
-            average_loss = (average_loss[0] * 0.99 + loss, average_loss[1] * 0.99 + 1)
-
-            if iter % 10 == 0:
-                print("[Epoch {0}: {1}] Loss = {2:.5f} Average loss = {3:.5f}".format(epoch, iter, loss,
-                                                                                      average_loss[0] / average_loss[
-                                                                                          1]))
-            iter += 1
-
-        # scheduler.step(average_loss[0] / average_loss[1])
-
-        if epoch % 5 == 0:
-            try:
-                if not os.path.exists(args.save):
-                    os.mkdir(args.save)
-
-                torch.save({
-                    'epoch': epoch,
-                    'learning_rate': learning_rate,
-                    'model_state_dict': model.state_dict(),
-                    'optimzer_state_dict': optimizer.state_dict()
-                    # 'scheduler_state_dict': scheduler.state_dict()
-                }, args.save + 'kogpt2_' + subject + '_' + str(epoch) + '.ckpt')
-                print("saving model succeeds")
-            except Exception as e:
-                traceback.print_exc()
-                print("saving model fails")
-                exit(0)
+        sentence = sentence.replace("<unused0>", "\n")
+        print(sentence)

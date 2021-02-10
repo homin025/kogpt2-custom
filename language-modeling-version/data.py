@@ -1,4 +1,4 @@
-import pandas as pd
+import json
 from typing import List, Tuple, NamedTuple, Optional
 
 import torch
@@ -9,38 +9,45 @@ from torch.utils.data import Dataset
 GPTInputsType = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 GPTFeaturesType = Tuple[List[int], List[float], List[int]]
 
+MAX_SUMMARY_SPACE = 200
+MIN_SUMMARY_SPACE = 20
 
-class Datum(NamedTuple):
+
+class Pair(NamedTuple):
     context: str
+    summary: str
 
 
 class CustomDataset(Dataset):
-    def __init__(self, data: List[Datum], tokenizer: SentencePieceBPETokenizer):
-        self.data = data
+    def __init__(self, pairs: List[Pair], tokenizer: SentencePieceBPETokenizer):
+        self.pairs = pairs
         self.tokenizer = tokenizer
 
         self.bos_token = tokenizer.token_to_id("<s>")
         self.eos_token = tokenizer.token_to_id("</s>")
+        self.task_token = tokenizer.encode("요약:").ids
 
     def __getitem__(self, index: int) -> GPTFeaturesType:
-        datum = self.data[index]
+        pair = self.pairs[index]
 
-        train_tokens = self.tokenizer.encode(f"{datum.context}").ids
+        train_tokens = self.tokenizer.encode(f"문맥:{pair.context}").ids
+        target_tokens = self.tokenizer.encode(f"{pair.summary}").ids
 
-        len_train_tokens = 1 + len(train_tokens) + 1
+        len_train_tokens = 1 + len(train_tokens) + len(self.task_token)
+        len_target_tokens = len(target_tokens) + 1
 
-        if len_train_tokens >= 1000:
-            len_available = len_train_tokens - 1000
+        if len_train_tokens + len_target_tokens >= 1000:
+            len_available = 1000 - len(target_tokens) - len(self.task_token)
             train_tokens = train_tokens[:len_available]
 
-        input_ids = [self.bos_token] + train_tokens + [self.eos_token]
+        input_ids = [self.bos_token] + train_tokens + self.task_token + target_tokens + [self.eos_token]
         labels = input_ids
         attention_mask = [1.0] * len(input_ids)
 
         return input_ids, attention_mask, labels
 
     def __len__(self) -> int:
-        return len(self.data)
+        return len(self.pairs)
 
 
 def dynamic_padding_collate_fn(features: List[GPTFeaturesType]) -> GPTInputsType:
@@ -59,18 +66,15 @@ def dynamic_padding_collate_fn(features: List[GPTFeaturesType]) -> GPTInputsType
     return torch.tensor(input_ids), torch.tensor(attention_mask), torch.tensor(labels)
 
 
-def load_dataset(path: str) -> List[Datum]:
-    df = pd.read_csv(path)
+def load_dataset(path: str) -> List[Pair]:
+    with open(path, encoding="utf-8") as f:
+        json_file = json.load(f)
 
-    data = []
-    for document in df['review']:
+    pairs = []
+    for document in json_file['document']:
+        context = ' '.join(document['body'])
+        summary = ' '.join(document['abstract_sentences'])
+        pair = Pair(context, summary)
+        pairs.append(pair)
 
-        if type(document) != str:
-            continue
-        if len(document) == 0:
-            continue
-        
-        datum = Datum(document)
-        data.append(datum)
-
-    return data
+    return pairs

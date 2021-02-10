@@ -44,8 +44,8 @@ if __name__ == '__main__':
         args.load = None
 
     tokenizer = SentencePieceBPETokenizer.from_file(
-        vocab_filename="./tokenizer/vocab.json",
-        merges_filename="./tokenizer/merges.txt",
+        vocab_filename="./tokenizer/tokenizers_vocab.json",
+        merges_filename="./tokenizer/tokenizers_merges.txt",
         add_prefix_space=False
     )
 
@@ -79,6 +79,7 @@ if __name__ == '__main__':
 
     if not args.load:
         model.load_state_dict(checkpoint['model_state_dict'])
+        print("loading model succeeds")
 
     model.to(device)
     model.eval()

@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--save', type=str, default='./checkpoint/')
     parser.add_argument('--load', type=str, default='./checkpoint/kogpt2_subject_epoch.ckpt')
     parser.add_argument('--train_dataset', type=str, default='./dataset/none_train.json', required=True)
+    parser.add_argument('--valid_dataset', type=str, default='./dataset/none_valid.json')
     args = parser.parse_args()
 
     if args.epoch == -1:
@@ -43,8 +44,8 @@ if __name__ == '__main__':
         args.load = None
 
     tokenizer = SentencePieceBPETokenizer.from_file(
-        vocab_filename="./tokenizer/vocab.json",
-        merges_filename="./tokenizer/merges.txt",
+        vocab_filename="./tokenizer/tokenizers_vocab.json",
+        merges_filename="./tokenizer/tokenizers_merges.txt",
         add_prefix_space=False
     )
 
@@ -56,8 +57,23 @@ if __name__ == '__main__':
     except Exception as e:
         print("loading dataset fails")
         traceback.print_exc()
-        exit(0)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=dynamic_padding_collate_fn)
+
+    if args.valid_dataset == './dataset/none_valid.json':
+        valid_flag = False
+    else:
+        valid_flag = True
+
+    if valid_flag:
+        valid_dataset = None
+        try:
+            pairs = load_dataset(args.valid_dataset)
+            valid_dataset = CustomDataset(pairs, tokenizer)
+            print("loading valid dataset succeeds")
+        except Exception as e:
+            print("loading valid dataset fails")
+            traceback.print_exc()
+        valid_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=dynamic_padding_collate_fn)
 
     model = GPT2LMHeadModel.from_pretrained(pretrained_model_name_or_path="taeminlee/kogpt2")
 

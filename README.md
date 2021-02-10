@@ -9,7 +9,8 @@ python train.py --epoch 200 --batch_size 1 --save ./checkpoint/ --load ./checkpo
 - `--batch_size` : number of batch size
 - `--save` : directory to save trained model for every 5 epochs (ex: ./checkpoint/)
 - `--load` : directory to load pretrained model (ex: ./checkpoint/kogpt2_summarization_150.ckpt)
-- `--data` [required] : directory to load dataset (ex: ./dataset/data)
+- `--train_dataset` [required] : directory to load dataset (ex: ./dataset/data)
+- `--valid_dataset` : directory to load dataset (ex: ./dataset/data)
 - Notice: You should CUSTOMIZE train.py and data.py suitable to your own dataset.
 
 

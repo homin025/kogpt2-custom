@@ -57,6 +57,6 @@ if __name__ == '__main__':
         if content == 'quit':
             break
         else:
-            sentences = samples_tk.sample_sequence_sentence(model, tokenizer, device, content, args.temperature, args.top_k, args.top_p, count)
+            sentences = samples.sample_sequence_sentence(model, tokenizer, device, content, args.temperature, args.top_k, args.top_p, count)
             print('output:', content + sentences[0])
     

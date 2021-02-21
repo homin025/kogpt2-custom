@@ -36,9 +36,9 @@ class CustomDataset(Dataset):
         len_train_tokens = 1 + len(train_tokens) + len(self.task_token)
         len_target_tokens = len(target_tokens) + 1
 
-        if len_train_tokens + len_target_tokens >= 1000:
-            len_available = 1000 - len(target_tokens) - len(self.task_token)
-            train_tokens = train_tokens[:len_available]
+        if len_train_tokens + len_target_tokens >= 800:
+            len_exceed_tokens = len_train_tokens + len_target_tokens - 800
+            train_tokens = train_tokens[:len_train_tokens - len_exceed_tokens]
 
         input_ids = [self.bos_token] + train_tokens + self.task_token + target_tokens + [self.eos_token]
         labels = input_ids

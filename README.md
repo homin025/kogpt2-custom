@@ -6,7 +6,7 @@
 
 - [Background](#background)
 - [Install](#install)
-- [Usage](#usage
+- [Usage](#usage)
 - [License](#license)
 - [Reference](#reference)
 

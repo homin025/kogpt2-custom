@@ -80,8 +80,8 @@ def sample_sequence_sentence(model, tokenizer, device, text, temperature, top_k,
         while True:
             input_ids = [bos_token] + context_tokens + generated_ids[idx]
 
-            if len(input_ids) > 1024:
-                input_ids = input_ids[len(input_ids) - 1020:]
+            if len(input_ids) > 1000:
+                input_ids = input_ids[len(input_ids) - 1000:]
 
             input_ids = torch.tensor([input_ids]).cuda()
 
@@ -138,10 +138,12 @@ def sample_sequence_words(model, tokenizer, device, text, temperature, top_k, to
 
     input_ids = [bos_token] + context_tokens
 
-    if len(input_ids) > 1024:
+    if len(input_ids) > 1000:
         input_ids = input_ids[len(input_ids) - 1000:]
 
     input_ids = torch.tensor([input_ids]).cuda()
+
+    input_ids.to(device)
 
     predicts = model(input_ids)
     pred = predicts[0]

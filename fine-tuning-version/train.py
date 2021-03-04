@@ -158,7 +158,6 @@ if __name__ == '__main__':
             except Exception as e:
                 traceback.print_exc()
                 print("saving model fails")
-                exit(0)
 
     torch.save({
         'epoch': epoch,

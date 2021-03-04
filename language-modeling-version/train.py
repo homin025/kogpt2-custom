@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
         print("[Epoch {0}] Best Epcoh {1} Best loss = {2:.5f}".format(epoch, best_epoch, best_loss))
 
-        if epoch % 1 == 0:
+        if epoch % 2 == 0:
             try:
                 if not os.path.exists(args.save):
                     os.mkdir(args.save)
@@ -144,7 +144,6 @@ if __name__ == '__main__':
             except Exception as e:
                 traceback.print_exc()
                 print("saving model fails")
-                exit(0)
 
     torch.save({
         'epoch': epoch,
